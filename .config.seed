@@ -1,0 +1,33 @@
+# Seed config for Radxa Cubie A5E (1 GB) SD card image.
+# Feed this to `make defconfig` -- it fills in every unset symbol.
+
+CONFIG_TARGET_sunxi=y
+CONFIG_TARGET_sunxi_cortexa55=y
+CONFIG_TARGET_sunxi_cortexa55_DEVICE_radxa_cubie-a5e=y
+
+# Roomier than the default so there is space to iterate on the board.
+CONFIG_TARGET_ROOTFS_PARTSIZE=640
+CONFIG_SUNXI_SD_BOOT_PARTSIZE=64
+
+# Keep per-package build logs under logs/ for post-mortem.
+CONFIG_DEVEL=y
+CONFIG_BUILD_LOG=y
+
+# WiFi: local out-of-tree AIC8800D80 SDIO driver + firmware.
+CONFIG_PACKAGE_kmod-aic8800-sdio=y
+CONFIG_PACKAGE_aic8800-sdio-firmware=y
+
+# Full wpad (hostapd + wpa_supplicant) rather than the basic variant.
+CONFIG_PACKAGE_wpad-basic-mbedtls=n
+CONFIG_PACKAGE_wpad-mbedtls=y
+
+# Diagnostics -- the board has no working ACS and a flaky vendor driver,
+# so having the full iw and tcpdump on the image saves a rebuild cycle.
+CONFIG_PACKAGE_iw-full=y
+CONFIG_PACKAGE_tcpdump=y
+CONFIG_PACKAGE_ethtool=y
+CONFIG_PACKAGE_kmod-sdhci=y
+
+# Web UI, convenient for an experiment.
+CONFIG_PACKAGE_luci=y
+CONFIG_PACKAGE_luci-ssl=y
