@@ -64,7 +64,8 @@ MESON_COMMON_ARGS = \
 
 MESON_HOST_ARGS += \
 	$(MESON_COMMON_ARGS) \
-	-Dcrypto_backend=openssl
+	-Dcrypto_backend=openssl \
+	-Db_lto=false
 
 MESON_ARGS += \
 	$(MESON_COMMON_ARGS) \

@@ -1,0 +1,86 @@
+From: OpenWrt A5E build (local)
+Subject: libfakeroot: also treat EINVAL as EPERM for chown/chmod
+
+Under an unprivileged user namespace (as bubblewrap/buildFHSEnv
+implicitly creates), chown()/chmod() to a uid/gid that has no entry
+in the namespace's uid_map/gid_map fails with EINVAL instead of the
+classic EPERM that an unprivileged process gets outside a userns.
+fakeroot only forgives EPERM, so apk's fchownat() calls during
+'package/install' surfaced as real errors ('failed to preserve
+<path>: owner'), tripping apk's error-count threshold and aborting
+the build with Error 99.
+
+--- a/libfakeroot.c
++++ b/libfakeroot.c
+@@ -900,7 +900,7 @@
+     r=next_lchown(path,owner,group);
+   else
+     r=0;
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ 
+   return r;
+@@ -927,7 +927,7 @@
+     r=next_lchown(path,owner,group);
+   else
+     r=0;
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ 
+   return r;
+@@ -957,7 +957,7 @@
+   else
+     r=0;
+ 
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ 
+   return r;
+@@ -992,7 +992,7 @@
+   else
+     r=0;
+ 
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ 
+   return r;
+@@ -1030,7 +1030,7 @@
+     mode |= 0100;
+ 
+   r=next_chmod(path, mode);
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ #ifdef EFTYPE		/* available under FreeBSD kernel */
+   if(r&&(errno==EFTYPE))
+@@ -1063,7 +1063,7 @@
+     mode |= 0100;
+ 
+   r=next_lchmod(path, mode);
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ #ifdef EFTYPE		/* available under FreeBSD kernel */
+   if(r&&(errno==EFTYPE))
+@@ -1097,7 +1097,7 @@
+     mode |= 0100;
+ 
+   r=next_fchmod(fd, mode);
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ #ifdef EFTYPE		/* available under FreeBSD kernel */
+   if(r&&(errno==EFTYPE))
+@@ -1131,7 +1131,7 @@
+   if(!(r&&(errno==EOPNOTSUPP)))
+     INT_SEND_STAT(&st,chmod_func);
+ 
+-  if(r&&(errno==EPERM))
++  if(r&&(errno==EPERM||errno==EINVAL))
+     r=0;
+ #ifdef EFTYPE		/* available under FreeBSD kernel */
+   if(r&&(errno==EFTYPE))
