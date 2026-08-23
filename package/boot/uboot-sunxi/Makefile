@@ -529,6 +529,27 @@ UBOOT_CUSTOMIZE_CONFIG := \
 	--disable TOOLS_LIBCRYPTO \
 	--disable TOOLS_MKEFICAPSULE
 
+# LOCAL (not upstream): the 1 GB LPDDR4 SKU of the Radxa Cubie A5E uses a
+# different DRAM chip at a different voltage than the 2/4 GB SKUs, and the
+# stock radxa-cubie-a5e_defconfig only brings up the latter -- SPL hangs
+# right after printing "DRAM: 1024 MiB" on a 1 GB board.
+#
+# These are the hand-tuned parameters already proven on this exact board by
+# the NixOS build (see machines/switchboard/hw-config/uboot.nix:84-90 in
+# /etc/nixos), which currently boots from SPI NOR.
+#
+# NOTE: this makes u-boot-radxa-cubie-a5e boot *only* the 1 GB SKU. Drop
+# this block to build for a 2/4 GB board.
+ifeq ($(BUILD_VARIANT),radxa-cubie-a5e)
+UBOOT_CUSTOMIZE_CONFIG += \
+	--set-val DRAM_CLK 720 \
+	--set-val DRAM_SUNXI_TPR2 0x1f0b0503 \
+	--set-val DRAM_SUNXI_TPR6 0x3a000000 \
+	--set-val DRAM_SUNXI_TPR10 0x802f3333 \
+	--set-val DRAM_SUNXI_TPR11 0xc0c0bbbf \
+	--set-val DRAM_SUNXI_TPR12 0x35352f31
+endif
+
 UBOOT_MAKE_FLAGS += \
 	BL31=$(STAGING_DIR_IMAGE)/bl31_sunxi-$(ATF).bin SCP=/dev/null
 
