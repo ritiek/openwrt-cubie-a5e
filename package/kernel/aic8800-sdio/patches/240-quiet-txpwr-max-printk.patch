@@ -1,0 +1,42 @@
+LOCAL PATCH -- not from the vendor debian/patches series.
+
+Gate the get_txpwr_max() log line behind aicwf_dbg_level.
+
+get_txpwr_max() ended with a raw, unconditional printk().  Every other
+debug line in this driver goes through the AICWFDBG() macro, which is
+gated on the aicwf_dbg_level module parameter that
+200-fix-Lower-the-debugging-log-level.patch already pins to LOGERROR --
+so this one line was the only vendor chatter still escaping that knob.
+
+It is not harmless.  The function is called from
+rwnx_cfg80211_get_tx_power(), i.e. once per cfg80211 TX-power query, so
+anything that polls TX power (iw, hostapd, netifd/ubus wifi status, a
+LuCI status page) makes the driver print.  Observed on the Cubie A5E as
+bursts of six lines inside 40 ms, repeating indefinitely:
+
+    [  408.667491] get_txpwr_max:txpwr_max:18
+    [  408.671562] get_txpwr_max:txpwr_max:18
+    [  408.675882] get_txpwr_max:txpwr_max:18
+
+A bare printk() with no KERN_ level takes CONFIG_MESSAGE_LOGLEVEL_DEFAULT,
+which is 4 in this kernel config, while CONSOLE_LOGLEVEL_DEFAULT is 7.
+Since 4 < 7 the line reaches the console on a completely stock boot -- it
+is not an artefact of raising loglevel on the kernel command line, and it
+will scroll a serial console indefinitely.
+
+Converting it to AICWFDBG(LOGINFO, ...) silences it by default while
+keeping it recoverable at runtime for debugging:
+
+    echo $((0x0001|0x0002)) > /sys/module/aic8800_fdrv/parameters/aicwf_dbg_level
+
+--- a/src/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_platform.c
++++ b/src/SDIO/driver_fw/driver/aic8800/aic8800_fdrv/rwnx_platform.c
+@@ -1073,7 +1073,7 @@
+ 	    }
+ 	}
+ 
+-	printk("%s:txpwr_max:%d \r\n",__func__,power);
++	AICWFDBG(LOGINFO, "%s:txpwr_max:%d \r\n", __func__, power);
+ 	return power;
+ }
+ 
