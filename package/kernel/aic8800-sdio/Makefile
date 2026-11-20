@@ -17,6 +17,11 @@
 # with "< KERNEL_VERSION(6,17,0)", so applying the whole series on 6.18 is
 # correct.
 #
+# cfg80211 is NOT the kernel's: it comes from mac80211 backports (7.2 as of
+# Nov 2026), so LINUX_VERSION_CODE (6.18) cannot gate cfg80211 API changes.
+# 250/260 are radxa's 7.1/7.2 fixes with those gates rewritten to
+# CFG80211_VERSION_CODE, defined in EXTRA_CFLAGS below.
+#
 # Structured after github.com/firtel-t/aic8800-sdio-openwrt.
 #
 include $(TOPDIR)/rules.mk
@@ -24,7 +29,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=aic8800-sdio
 PKG_VERSION:=5.0
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/radxa-pkg/aic8800.git
@@ -105,7 +110,12 @@ endef
 # blanket -Werror) and nothing in the vendor tree sets it, so passing it on
 # the command line is safe and does not clobber any vendor "+=" flags the
 # way overriding ccflags-y directly would.
+# CFG80211_VERSION_CODE is KERNEL_VERSION(7,2,0) as a plain number (kbuild
+# runs the compiler through sh, so no parentheses).
+# shortcut: hardcoded to package/kernel/mac80211's PKG_SOURCE_VERSION (7.2),
+# bump it with backports and add radxa's matching fix-linux-7.x patch.
 EXTRA_CFLAGS:= \
+	-DCFG80211_VERSION_CODE=459264 \
 	-DCONFIG_AIC8800_WLAN_SUPPORT=1 \
 	-DAICWF_SDIO_SUPPORT \
 	-Wno-error \
